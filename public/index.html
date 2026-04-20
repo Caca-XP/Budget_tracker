@@ -258,7 +258,6 @@
 
     @media (min-width: 600px) {
       .table-wrap { display: block; }
-      .budget-cards { display: none; }
     }
 
     table {
@@ -319,7 +318,11 @@
     .num { font-variant-numeric: tabular-nums; }
 
     /* ── Budget Cards — mobile ──────────────────────────────────────────── */
-    .budget-cards { display: flex; flex-direction: column; gap: 8px; }
+    .budget-cards { display: none; flex-direction: column; gap: 8px; }
+
+    @media (max-width: 599px) {
+      .budget-cards { display: flex; }
+    }
 
     .bc-row {
       background: var(--surface2);

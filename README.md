@@ -88,7 +88,8 @@ git push -u origin main
 
 ```
 budget-tracker/
-├── index.html                    ← the entire app (HTML + CSS + JS)
+└── public/
+    └── index.html                    ← the entire app (HTML + CSS + JS)
 ├── supabase-setup.sql            ← run once in Supabase SQL editor
 ├── README.md                     ← this file
 └── .github/
