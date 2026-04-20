@@ -222,7 +222,70 @@
       box-shadow: 0 0 0 3px rgba(240, 80, 160, 0.12);
     }
 
-    input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+    /* Hide native spinners across all browsers */
+    input[type="number"] { -moz-appearance: textfield; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+    /* Custom spinner wrapper */
+    .num-wrap {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .num-wrap input[type="number"] {
+      flex: 1;
+      border-radius: var(--radius) 0 0 var(--radius);
+      border-right: none;
+      min-width: 0;
+    }
+
+    .num-wrap input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(240, 80, 160, 0.12);
+      position: relative;
+      z-index: 1;
+    }
+
+    .spinner-btns {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .spinner-btn {
+      width: 28px;
+      flex: 1;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: 0.75rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transition), color var(--transition);
+      user-select: none;
+      padding: 0;
+    }
+
+    .spinner-btn:first-child {
+      border-radius: 0 var(--radius) 0 0;
+      border-bottom: none;
+    }
+
+    .spinner-btn:last-child {
+      border-radius: 0 0 var(--radius) 0;
+    }
+
+    .spinner-btn:hover {
+      background: var(--accent);
+      color: #0d1117;
+    }
+
+    .spinner-btn:active { opacity: 0.8; }
 
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
@@ -601,7 +664,13 @@
       </div>
       <div class="form-group">
         <label for="f-amount">Amount ($)</label>
-        <input type="number" id="f-amount" min="0.01" step="0.01" placeholder="0.00" required />
+        <div class="num-wrap">
+          <input type="number" id="f-amount" min="0.01" step="0.01" placeholder="0.00" required />
+          <div class="spinner-btns">
+            <button type="button" class="spinner-btn" onclick="stepInput('f-amount', 0.01, 1)"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="7" viewBox="0 0 12 8"><path fill="currentColor" d="M6 0L12 8H0z"/></svg></button>
+            <button type="button" class="spinner-btn" onclick="stepInput('f-amount', 0.01, -1)"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="7" viewBox="0 0 12 8"><path fill="currentColor" d="M6 8L0 0h12z"/></svg></button>
+          </div>
+        </div>
       </div>
       <div class="form-group">
         <label for="f-desc">Description</label>
@@ -614,7 +683,13 @@
         </div>
         <div class="form-group">
           <label for="f-fn">Fortnight</label>
+          <div class="num-wrap">
           <input type="number" id="f-fn" min="1" step="1" placeholder="Auto" />
+          <div class="spinner-btns">
+            <button type="button" class="spinner-btn" onclick="stepInput('f-fn', 1, 1)"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="7" viewBox="0 0 12 8"><path fill="currentColor" d="M6 0L12 8H0z"/></svg></button>
+            <button type="button" class="spinner-btn" onclick="stepInput('f-fn', 1, -1)"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="7" viewBox="0 0 12 8"><path fill="currentColor" d="M6 8L0 0h12z"/></svg></button>
+          </div>
+        </div>
         </div>
       </div>
       <button class="submit-btn" id="submit-btn" type="button">Submit Transaction</button>
@@ -923,6 +998,20 @@ function showToast(msg, type = "success") {
   el.textContent = msg;
   el.className = `${type} show`;
   toastTimer = setTimeout(() => { el.classList.remove("show"); }, 3000);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Custom spinner helper
+// ══════════════════════════════════════════════════════════════════════════════
+
+function stepInput(id, step, dir) {
+  const el = document.getElementById(id);
+  const min = parseFloat(el.min ?? "-Infinity");
+  const current = parseFloat(el.value) || 0;
+  const decimals = step.toString().split(".")[1]?.length ?? 0;
+  const next = Math.max(min, current + step * dir);
+  el.value = next.toFixed(decimals);
+  el.dispatchEvent(new Event("change"));
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
