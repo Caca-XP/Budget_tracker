@@ -3,8 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main          # deploys automatically on every push to main
-  workflow_dispatch:  # lets you trigger a deploy manually from GitHub UI
+      - main          # deploy automatically on every push to main
+  workflow_dispatch:  # also allow manual trigger from GitHub UI
 
 permissions:
   contents: read
@@ -23,16 +23,23 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v5
+      - name: Inject Supabase credentials
+        # Replaces the placeholders in index.html with the real secrets.
+        # Secrets are stored in GitHub → Settings → Secrets, never in the code.
+        run: |
+          sed -i "s|SUPABASE_URL_PLACEHOLDER|${{ secrets.SUPABASE_URL }}|g" public/index.html
+          sed -i "s|SUPABASE_ANON_PLACEHOLDER|${{ secrets.SUPABASE_ANON_KEY }}|g" public/index.html
 
-      - name: Upload site files
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "."   # uploads everything in the repo root (just index.html)
+          path: public   # only deploy the public/ folder — no server.js, no csv
 
       - name: Deploy to GitHub Pages
         id: deployment

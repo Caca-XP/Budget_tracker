@@ -545,23 +545,6 @@
       font-size: 0.78rem;
       letter-spacing: 0.04em;
     }
-
-    .csv-btn {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      padding: 4px 10px;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      border-radius: var(--radius);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: border-color var(--transition), color var(--transition);
-      flex-shrink: 0;
-    }
-    .csv-btn:hover { border-color: var(--accent); color: var(--accent); }
   </style>
 </head>
 <body>
@@ -573,7 +556,19 @@
       <h1>Budget Tracker</h1>
       <span>Sydney · AUD</span>
     </div>
-    <div class="fn-badge" id="fn-badge">FN —</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="downloadCSV()" style="
+        font-family:var(--mono);font-size:0.65rem;font-weight:600;
+        letter-spacing:0.08em;text-transform:uppercase;
+        padding:5px 11px;background:transparent;
+        border:1px solid var(--border);color:var(--muted);
+        border-radius:20px;cursor:pointer;transition:border-color 200ms,color 200ms;
+      " onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+         onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+        ↓ CSV
+      </button>
+      <div class="fn-badge" id="fn-badge">FN —</div>
+    </div>
   </header>
 
   <!-- ── Main Grid ───────────────────────────────────────────────────────── -->
@@ -619,10 +614,7 @@
 
     <!-- Budget Table -->
     <div class="card">
-      <div class="card-title-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;">
-        <div class="card-title" style="margin-bottom:0;">Budget — Current Fortnight <span id="fn-daterange" style="font-weight:400; color: var(--muted); margin-left: 6px;"></span></div>
-        <button onclick="downloadCSV()" class="csv-btn" title="Download CSV backup">↓ CSV</button>
-      </div>
+      <div class="card-title">Budget — Current Fortnight <span id="fn-daterange" style="font-weight:400; color: var(--muted); margin-left: 6px;"></span></div>
       <!-- Desktop: table -->
       <div class="table-wrap">
         <table id="budget-table">
@@ -849,17 +841,17 @@ function renderRecentPanel() {
 // Supabase API
 // ══════════════════════════════════════════════════════════════════════════════
 
-// 🔧 FILL THESE IN — copy from your Supabase project Settings → API
-const SUPABASE_URL    = "PASTE_YOUR_SUPABASE_URL_HERE";
-const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
-const TABLE = "transactions";
+// ▶ These two values are replaced at deploy time by GitHub Actions.
+//   Do NOT hardcode real credentials here — the placeholders get swapped in.
+const SUPABASE_URL    = "SUPABASE_URL_PLACEHOLDER";
+const SUPABASE_ANON   = "SUPABASE_ANON_PLACEHOLDER";
+const TABLE           = "transactions";
 
 function sbHeaders() {
   return {
     "Content-Type":  "application/json",
-    "apikey":        SUPABASE_ANON_KEY,
-    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-    "Prefer":        "return=representation",
+    "apikey":        SUPABASE_ANON,
+    "Authorization": "Bearer " + SUPABASE_ANON,
   };
 }
 
@@ -868,8 +860,16 @@ async function loadActuals() {
     `${SUPABASE_URL}/rest/v1/${TABLE}?select=*&order=date.asc`,
     { headers: sbHeaders() }
   );
-  if (!res.ok) throw new Error(`Supabase load failed: ${res.status}`);
-  return res.json(); // returns array of row objects
+  if (!res.ok) throw new Error("Failed to load from Supabase");
+  const rows = await res.json();
+  // Normalise: Supabase returns snake_case, amounts as strings sometimes
+  return rows.map(r => ({
+    date:        r.date,
+    type:        r.type,
+    amount:      parseFloat(r.amount),
+    fortnight:   parseInt(r.fortnight, 10),
+    description: r.description,
+  }));
 }
 
 async function postActual(tx) {
@@ -877,35 +877,31 @@ async function postActual(tx) {
     `${SUPABASE_URL}/rest/v1/${TABLE}`,
     {
       method:  "POST",
-      headers: sbHeaders(),
+      headers: { ...sbHeaders(), "Prefer": "return=representation" },
       body:    JSON.stringify(tx),
     }
   );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Supabase insert failed: ${res.status}`);
+    throw new Error(err.message || err.error || "Supabase error");
   }
   const rows = await res.json();
   return rows[0];
 }
 
-// ── CSV export ────────────────────────────────────────────────────────────────
-function downloadCSV() {
-  if (allTx.length === 0) { showToast("No data to export.", "error"); return; }
+async function downloadCSV() {
+  const rows = await loadActuals();
   const header = "date,type,amount,fortnight,description";
-  const rows = allTx.map(t => {
-    const desc = t.description.includes(",") ? `"${t.description.replace(/"/g,'""')}"` : t.description;
-    return `${t.date},${t.type},${t.amount},${t.fortnight},${desc}`;
+  const lines = rows.map(r => {
+    const desc = r.description.includes(",") ? `"${r.description.replace(/"/g,'""')}"` : r.description;
+    return `${r.date},${r.type},${r.amount},${r.fortnight},${desc}`;
   });
-  const csv = [header, ...rows].join("\n");
+  const csv = [header, ...lines].join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `actuals-${new Date().toISOString().split("T")[0]}.csv`;
-  a.click();
+  a.href = url; a.download = "actuals.csv"; a.click();
   URL.revokeObjectURL(url);
-  showToast("CSV downloaded ✓", "success");
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1040,10 +1036,10 @@ document.getElementById("recent-header").addEventListener("click", () => {
     renderRecentPanel();
   } catch (err) {
     document.getElementById("budget-tbody").innerHTML =
-      `<tr><td colspan="5" class="empty-state">⚠ Could not load data. Check your Supabase URL and anon key in index.html.</td></tr>`;
+      `<tr><td colspan="5" class="empty-state">⚠ Could not load data. Check your Supabase credentials.</td></tr>`;
     document.getElementById("budget-cards").innerHTML =
       `<div class="empty-state">⚠ Could not load data. Check your Supabase credentials.</div>`;
-    showToast("Could not connect to Supabase.", "error");
+    showToast("Cannot reach Supabase.", "error");
   }
 })();
 </script>
