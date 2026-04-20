@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Budget Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Variables ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1c2128;
+      --border:    #30363d;
+      --accent:    #f050a0;
+      --accent-dim:#f050a022;
+      --danger-bg: rgba(255, 77, 77, 0.12);
+      --danger-txt:#ff6b6b;
+      --warn-bg:   rgba(245, 197, 24, 0.10);
+      --warn-txt:  #f5c518;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'DM Sans', sans-serif;
+      --radius:    6px;
+      --transition: 200ms ease;
+    }
+
+    html { font-size: 14px; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Subtle grid texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.18;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────────── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 12px 80px;
+    }
+
+    @media (min-width: 600px) {
+      .page { padding: 0 20px 60px; }
+      html { font-size: 15px; }
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0 14px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    @media (min-width: 600px) {
+      header { padding: 24px 0 20px; margin-bottom: 28px; }
+    }
+
+    .header-left h1 {
+      font-family: var(--mono);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    @media (min-width: 600px) {
+      .header-left h1 { font-size: 1.15rem; }
+    }
+
+    .header-left span {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+      letter-spacing: 0.05em;
+    }
+
+    .fn-badge {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      padding: 5px 11px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 20px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    @media (min-width: 820px) {
+      .main-grid {
+        grid-template-columns: 300px 1fr;
+        gap: 24px;
+      }
+    }
+
+    /* ── Cards ──────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
+    @media (min-width: 600px) {
+      .card { padding: 22px; }
+    }
+
+    .card-title {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    @media (min-width: 600px) {
+      .card-title { margin-bottom: 18px; font-size: 0.7rem; }
+    }
+
+    .card-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Form ───────────────────────────────────────────────────────────── */
+    .form-group { margin-bottom: 11px; }
+
+    @media (min-width: 600px) {
+      .form-group { margin-bottom: 14px; }
+    }
+
+    label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 1rem; /* 16px on mobile prevents iOS zoom */
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    @media (min-width: 600px) {
+      input, select { font-size: 0.875rem; padding: 9px 12px; }
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238b949e' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+      cursor: pointer;
+    }
+
+    select option { background: var(--surface); }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(240, 80, 160, 0.12);
+    }
+
+    input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .submit-btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 13px 0;
+      background: var(--accent);
+      color: #0d1117;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+      /* Tap-friendly height */
+      min-height: 48px;
+    }
+
+    .submit-btn:hover {
+      opacity: 0.88;
+      box-shadow: 0 0 16px rgba(240, 80, 160, 0.35);
+    }
+
+    .submit-btn:active { transform: translateY(1px); }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Budget Table — desktop ─────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; display: none; }
+
+    @media (min-width: 600px) {
+      .table-wrap { display: block; }
+      .budget-cards { display: none; }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+    }
+
+    th {
+      font-family: var(--sans);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 8px 14px;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    th:first-child { text-align: left; }
+
+    td {
+      padding: 10px 14px;
+      text-align: right;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+      transition: background-color var(--transition);
+      white-space: nowrap;
+    }
+
+    td:first-child { text-align: left; color: var(--text); }
+
+    tbody tr { background: transparent; }
+
+    tbody tr.row-danger { background: var(--danger-bg); }
+    tbody tr.row-danger td { color: var(--danger-txt); }
+    tbody tr.row-danger td:first-child { color: var(--danger-txt); }
+
+    tbody tr.row-warn { background: var(--warn-bg); }
+    tbody tr.row-warn td { color: var(--warn-txt); }
+    tbody tr.row-warn td:first-child { color: var(--warn-txt); }
+
+    tbody tr:not(.row-danger):not(.row-warn) td { color: var(--muted); }
+    tbody tr:not(.row-danger):not(.row-warn) td:first-child { color: var(--text); }
+
+    tr.total-row td {
+      font-weight: 600;
+      border-top: 1px solid var(--border);
+      border-bottom: none;
+      color: var(--text) !important;
+    }
+
+    tr.total-row.row-danger td { color: var(--danger-txt) !important; }
+    tr.total-row.row-warn td { color: var(--warn-txt) !important; }
+
+    .num { font-variant-numeric: tabular-nums; }
+
+    /* ── Budget Cards — mobile ──────────────────────────────────────────── */
+    .budget-cards { display: flex; flex-direction: column; gap: 8px; }
+
+    .bc-row {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 11px 13px;
+      transition: background-color var(--transition);
+    }
+
+    .bc-row.row-danger {
+      background: var(--danger-bg);
+      border-color: rgba(255, 77, 77, 0.3);
+    }
+
+    .bc-row.row-warn {
+      background: var(--warn-bg);
+      border-color: rgba(245, 197, 24, 0.3);
+    }
+
+    .bc-row.total-row {
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    .bc-row.total-row.row-danger { border-color: rgba(255, 77, 77, 0.5); }
+    .bc-row.total-row.row-warn   { border-color: rgba(245, 197, 24, 0.4); }
+
+    .bc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .bc-type {
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .bc-row.row-danger .bc-type { color: var(--danger-txt); }
+    .bc-row.row-warn   .bc-type { color: var(--warn-txt); }
+    .bc-row.total-row  .bc-type { font-size: 0.9rem; }
+
+    .bc-budget {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .bc-row.row-danger .bc-budget { color: var(--danger-txt); opacity: 0.7; }
+    .bc-row.row-warn   .bc-budget { color: var(--warn-txt);   opacity: 0.7; }
+
+    .bc-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+
+    .bc-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .bc-stat-label {
+      font-family: var(--sans);
+      font-size: 0.6rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0.7;
+    }
+
+    .bc-stat-value {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .bc-row.row-danger .bc-stat-value { color: var(--danger-txt); }
+    .bc-row.row-warn   .bc-stat-value { color: var(--warn-txt); }
+    .bc-row.total-row  .bc-stat-value { color: var(--text); font-weight: 600; }
+
+    /* ── Recent Transactions ────────────────────────────────────────────── */
+    .recent-section {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    @media (min-width: 600px) {
+      .recent-section { margin-top: 24px; }
+    }
+
+    .recent-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--transition);
+      min-height: 48px;
+    }
+
+    .recent-header:hover { background: var(--surface2); }
+    .recent-header.open { border-bottom-color: var(--border); }
+
+    .recent-title {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .recent-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .recent-count {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(240, 80, 160, 0.3);
+      color: var(--accent);
+      border-radius: 10px;
+    }
+
+    .toggle-icon {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      transition: transform var(--transition);
+    }
+
+    .toggle-icon.open { transform: rotate(180deg); }
+
+    .recent-body { display: none; padding: 4px 0 8px; }
+    .recent-body.open { display: block; }
+
+    .tx-item {
+      display: grid;
+      grid-template-columns: 86px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .tx-item:last-child { border-bottom: none; }
+
+    .tx-date { color: var(--muted); font-size: 0.72rem; }
+
+    .tx-type-desc { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .tx-type { color: var(--accent); font-size: 0.72rem; }
+    .tx-desc { color: var(--muted); font-family: var(--sans); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tx-amount { color: var(--text); font-weight: 500; text-align: right; white-space: nowrap; }
+
+    /* ── Toast ──────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      right: 12px;
+      left: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      z-index: 9999;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 220ms ease;
+      pointer-events: none;
+      text-align: center;
+    }
+
+    @media (min-width: 480px) {
+      #toast { left: auto; max-width: 320px; right: 20px; }
+    }
+
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    #toast.success {
+      background: rgba(240, 80, 160, 0.12);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+
+    #toast.error {
+      background: rgba(255, 77, 77, 0.12);
+      border: 1px solid #ff4d4d;
+      color: #ff6b6b;
+    }
+
+    /* ── Misc ───────────────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 28px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+    }
+
+    .csv-btn {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: var(--radius);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color var(--transition), color var(--transition);
+      flex-shrink: 0;
+    }
+    .csv-btn:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header>
+    <div class="header-left">
+      <h1>Budget Tracker</h1>
+      <span>Sydney · AUD</span>
+    </div>
+    <div class="fn-badge" id="fn-badge">FN —</div>
+  </header>
+
+  <!-- ── Main Grid ───────────────────────────────────────────────────────── -->
+  <div class="main-grid">
+
+    <!-- Form -->
+    <div class="card">
+      <div class="card-title">New Transaction</div>
+      <div class="form-group">
+        <label for="f-type">Transaction Type</label>
+        <select id="f-type" required>
+          <option value="" disabled selected>Select type…</option>
+          <option>Salary</option>
+          <option>Rent</option>
+          <option>Transport</option>
+          <option>Spending</option>
+          <option>Travel</option>
+          <option>Emergency</option>
+          <option>Miscellaneous expense</option>
+          <option>Investment</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="f-amount">Amount ($)</label>
+        <input type="number" id="f-amount" min="0.01" step="0.01" placeholder="0.00" required />
+      </div>
+      <div class="form-group">
+        <label for="f-desc">Description</label>
+        <input type="text" id="f-desc" placeholder="What was this for?" required />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="f-date">Date</label>
+          <input type="date" id="f-date" required />
+        </div>
+        <div class="form-group">
+          <label for="f-fn">Fortnight</label>
+          <input type="number" id="f-fn" min="1" step="1" placeholder="Auto" />
+        </div>
+      </div>
+      <button class="submit-btn" id="submit-btn" type="button">Submit Transaction</button>
+    </div>
+
+    <!-- Budget Table -->
+    <div class="card">
+      <div class="card-title-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;">
+        <div class="card-title" style="margin-bottom:0;">Budget — Current Fortnight <span id="fn-daterange" style="font-weight:400; color: var(--muted); margin-left: 6px;"></span></div>
+        <button onclick="downloadCSV()" class="csv-btn" title="Download CSV backup">↓ CSV</button>
+      </div>
+      <!-- Desktop: table -->
+      <div class="table-wrap">
+        <table id="budget-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Budget</th>
+              <th>Left (FN)</th>
+              <th>Debt Accrued</th>
+              <th>Allowed Spending</th>
+            </tr>
+          </thead>
+          <tbody id="budget-tbody">
+            <tr><td colspan="5" class="empty-state">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Mobile: cards -->
+      <div class="budget-cards" id="budget-cards">
+        <div class="empty-state">Loading…</div>
+      </div>
+    </div>
+
+  </div><!-- /.main-grid -->
+
+  <!-- ── Recent Transactions ──────────────────────────────────────────────── -->
+  <div class="recent-section">
+    <div class="recent-header" id="recent-header">
+      <div class="recent-title">
+        Recent
+        <span class="recent-count" id="recent-count">0</span>
+      </div>
+      <span class="toggle-icon" id="toggle-icon">▼</span>
+    </div>
+    <div class="recent-body" id="recent-body">
+      <div class="empty-state" id="recent-empty">No transactions added this session.</div>
+    </div>
+  </div>
+
+</div><!-- /.page -->
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// Config & State
+// ══════════════════════════════════════════════════════════════════════════════
+
+const BUDGET_CONFIG = [
+  { type: "Rent",                  budget: 840  },
+  { type: "Transport",             budget: 80   },
+  { type: "Spending",              budget: 120  },
+  { type: "Travel",                budget: 120  },
+  { type: "Emergency",             budget: 72   },
+  { type: "Miscellaneous expense", budget: 90   },
+  { type: "Investment",            budget: 1160 },
+];
+
+const ANCHOR = new Date("2026-03-18");
+
+let allTx = [];            // full array from CSV
+let sessionTx = [];        // added this session (for recent panel)
+let recentOpen = false;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Business Logic
+// ══════════════════════════════════════════════════════════════════════════════
+
+function getFortnight(dateStr) {
+  const d = new Date(dateStr);
+  return Math.floor((d - ANCHOR) / (14 * 86400 * 1000)) + 1;
+}
+
+function currentFN() {
+  if (allTx.length === 0) return 1;
+  return Math.max(...allTx.map(t => t.fortnight));
+}
+
+function computeRow(cfg, fn) {
+  const { type, budget } = cfg;
+
+  const pastSpend = allTx
+    .filter(t => t.type === type && t.fortnight < fn)
+    .reduce((s, t) => s + t.amount, 0);
+
+  const currentSpend = allTx
+    .filter(t => t.type === type && t.fortnight === fn)
+    .reduce((s, t) => s + t.amount, 0);
+
+  const budgetLeft = budget - currentSpend;
+
+  const debtAccrued = Math.max(0, pastSpend - budget * (fn - 1));
+
+  // allowedSpending: how much you can still spend this FN after accounting for debt.
+  // Floors at 0 — never shown as negative. Row is still red if there's an issue.
+  const effectiveBudgetLeft = Math.max(0, budgetLeft);
+  const allowedSpending = Math.max(0, effectiveBudgetLeft - debtAccrued);
+  const hasIssue = budgetLeft < 0 || debtAccrued > 0;
+
+  return { type, budget, budgetLeft, debtAccrued, allowedSpending, hasIssue };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Render
+// ══════════════════════════════════════════════════════════════════════════════
+
+function fmt(n) {
+  const abs = Math.abs(n);
+  const s = abs.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return n < 0 ? `−${s}` : s;
+}
+
+function fnDateRange(fn) {
+  const MS_PER_DAY = 86400 * 1000;
+  const start = new Date(ANCHOR.getTime() + (fn - 1) * 14 * MS_PER_DAY);
+  const end   = new Date(start.getTime() + 13 * MS_PER_DAY);
+  const fmt2  = d => d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+  return `${fmt2(start)} – ${fmt2(end)}`;
+}
+
+function renderBudgetTable() {
+  const fn = currentFN();
+  document.getElementById("fn-badge").textContent = `FN ${fn}`;
+  document.getElementById("fn-daterange").textContent = fnDateRange(fn);
+
+  const tbody = document.getElementById("budget-tbody");
+  const rows = BUDGET_CONFIG.map(cfg => computeRow(cfg, fn));
+
+  // Total row
+  const totalBudgetLeft      = rows.reduce((s, r) => s + r.budgetLeft, 0);
+  const totalDebtAccrued     = rows.reduce((s, r) => s + r.debtAccrued, 0);
+  const totalAllowedSpending = rows.reduce((s, r) => s + r.allowedSpending, 0);
+  const total = {
+    type: "Total",
+    budget:          rows.reduce((s, r) => s + r.budget, 0),
+    budgetLeft:      totalBudgetLeft,
+    debtAccrued:     totalDebtAccrued,
+    allowedSpending: totalAllowedSpending,
+    hasIssue:        totalBudgetLeft < 0 || totalDebtAccrued > 0,
+  };
+
+  const allRows = [...rows, total];
+
+  tbody.innerHTML = allRows.map((r, i) => {
+    const isDanger = r.hasIssue || (r.budgetLeft !== undefined && r.budgetLeft < 0) || r.debtAccrued > 0;
+    const isWarn   = !isDanger && r.budgetLeft === 0 && r.debtAccrued === 0;
+    const cls = isDanger ? "row-danger" : isWarn ? "row-warn" : "";
+    const totalCls = i === allRows.length - 1 ? " total-row" : "";
+
+    return `<tr class="${cls}${totalCls}">
+      <td>${r.type}</td>
+      <td class="num">$${fmt(r.budget)}</td>
+      <td class="num">$${fmt(r.budgetLeft)}</td>
+      <td class="num">$${fmt(r.debtAccrued)}</td>
+      <td class="num">$${fmt(r.allowedSpending)}</td>
+    </tr>`;
+  }).join("");
+
+  // Mobile cards
+  const cardsEl = document.getElementById("budget-cards");
+  cardsEl.innerHTML = allRows.map((r, i) => {
+    const isDanger = r.hasIssue || r.debtAccrued > 0;
+    const isWarn   = !isDanger && r.budgetLeft === 0 && r.debtAccrued === 0;
+    const cls = isDanger ? "row-danger" : isWarn ? "row-warn" : "";
+    const totalCls = i === allRows.length - 1 ? " total-row" : "";
+    return `<div class="bc-row ${cls}${totalCls}">
+      <div class="bc-header">
+        <span class="bc-type">${r.type}</span>
+        <span class="bc-budget num">Budget $${fmt(r.budget)}</span>
+      </div>
+      <div class="bc-stats">
+        <div class="bc-stat">
+          <span class="bc-stat-label">Left (FN)</span>
+          <span class="bc-stat-value num">$${fmt(r.budgetLeft)}</span>
+        </div>
+        <div class="bc-stat">
+          <span class="bc-stat-label">Debt</span>
+          <span class="bc-stat-value num">$${fmt(r.debtAccrued)}</span>
+        </div>
+        <div class="bc-stat">
+          <span class="bc-stat-label">Allowed</span>
+          <span class="bc-stat-value num">$${fmt(r.allowedSpending)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderRecentPanel() {
+  const count = sessionTx.length;
+  document.getElementById("recent-count").textContent = count;
+
+  const body = document.getElementById("recent-body");
+  const empty = document.getElementById("recent-empty");
+
+  if (count === 0) {
+    empty.style.display = "block";
+    // remove any tx items
+    body.querySelectorAll(".tx-item").forEach(el => el.remove());
+    return;
+  }
+
+  empty.style.display = "none";
+  body.querySelectorAll(".tx-item").forEach(el => el.remove());
+
+  const last3 = sessionTx.slice(-3).reverse();
+  last3.forEach(tx => {
+    const el = document.createElement("div");
+    el.className = "tx-item";
+    el.innerHTML = `
+      <span class="tx-date">${tx.date}</span>
+      <span class="tx-type-desc">
+        <span class="tx-type">${tx.type}</span>
+        <span class="tx-desc">${tx.description}</span>
+      </span>
+      <span class="tx-amount num">$${fmt(tx.amount)}</span>
+    `;
+    body.appendChild(el);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Supabase API
+// ══════════════════════════════════════════════════════════════════════════════
+
+// 🔧 FILL THESE IN — copy from your Supabase project Settings → API
+const SUPABASE_URL    = "PASTE_YOUR_SUPABASE_URL_HERE";
+const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
+const TABLE = "transactions";
+
+function sbHeaders() {
+  return {
+    "Content-Type":  "application/json",
+    "apikey":        SUPABASE_ANON_KEY,
+    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+    "Prefer":        "return=representation",
+  };
+}
+
+async function loadActuals() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABLE}?select=*&order=date.asc`,
+    { headers: sbHeaders() }
+  );
+  if (!res.ok) throw new Error(`Supabase load failed: ${res.status}`);
+  return res.json(); // returns array of row objects
+}
+
+async function postActual(tx) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABLE}`,
+    {
+      method:  "POST",
+      headers: sbHeaders(),
+      body:    JSON.stringify(tx),
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Supabase insert failed: ${res.status}`);
+  }
+  const rows = await res.json();
+  return rows[0];
+}
+
+// ── CSV export ────────────────────────────────────────────────────────────────
+function downloadCSV() {
+  if (allTx.length === 0) { showToast("No data to export.", "error"); return; }
+  const header = "date,type,amount,fortnight,description";
+  const rows = allTx.map(t => {
+    const desc = t.description.includes(",") ? `"${t.description.replace(/"/g,'""')}"` : t.description;
+    return `${t.date},${t.type},${t.amount},${t.fortnight},${desc}`;
+  });
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `actuals-${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("CSV downloaded ✓", "success");
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Toast
+// ══════════════════════════════════════════════════════════════════════════════
+
+let toastTimer;
+
+function showToast(msg, type = "success") {
+  const el = document.getElementById("toast");
+  clearTimeout(toastTimer);
+  el.textContent = msg;
+  el.className = `${type} show`;
+  toastTimer = setTimeout(() => { el.classList.remove("show"); }, 3000);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Form
+// ══════════════════════════════════════════════════════════════════════════════
+
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().split("T")[0];
+}
+
+function initForm() {
+  const dateEl = document.getElementById("f-date");
+  const fnEl   = document.getElementById("f-fn");
+  const today  = todayStr();
+
+  dateEl.value = today;
+  fnEl.value   = Math.max(1, getFortnight(today));
+  fnEl.max     = Math.max(1, getFortnight(today));
+
+  dateEl.addEventListener("change", () => {
+    if (!dateEl.value) return;
+    const fn = Math.max(1, getFortnight(dateEl.value));
+    fnEl.value = fn;
+    fnEl.max   = Math.max(fn, getFortnight(todayStr()));
+  });
+}
+
+function resetForm() {
+  document.getElementById("f-type").value = "";
+  document.getElementById("f-amount").value = "";
+  document.getElementById("f-desc").value = "";
+  const today = todayStr();
+  document.getElementById("f-date").value = today;
+  document.getElementById("f-fn").value = Math.max(1, getFortnight(today));
+}
+
+document.getElementById("submit-btn").addEventListener("click", async () => {
+  const typeEl   = document.getElementById("f-type");
+  const amountEl = document.getElementById("f-amount");
+  const descEl   = document.getElementById("f-desc");
+  const dateEl   = document.getElementById("f-date");
+  const fnEl     = document.getElementById("f-fn");
+  const btn      = document.getElementById("submit-btn");
+
+  // Basic validation
+  if (!typeEl.value)               { showToast("Please select a transaction type.", "error"); return; }
+  if (!amountEl.value || parseFloat(amountEl.value) <= 0) { showToast("Amount must be greater than 0.", "error"); return; }
+  if (!descEl.value.trim())        { showToast("Description is required.", "error"); return; }
+  if (!dateEl.value)               { showToast("Date is required.", "error"); return; }
+  if (!fnEl.value || parseInt(fnEl.value) < 1) { showToast("Invalid fortnight.", "error"); return; }
+
+  const tx = {
+    date:        dateEl.value,
+    type:        typeEl.value,
+    amount:      parseFloat(parseFloat(amountEl.value).toFixed(2)),
+    fortnight:   parseInt(fnEl.value, 10),
+    description: descEl.value.trim(),
+  };
+
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
+  try {
+    const saved = await postActual(tx);
+    allTx.push(saved);
+    sessionTx.push(saved);
+    renderBudgetTable();
+    renderRecentPanel();
+    // Auto-open recent panel on first session entry
+    if (sessionTx.length === 1 && window.innerWidth > 780) openRecent();
+    resetForm();
+    showToast("Transaction saved ✓", "success");
+  } catch (err) {
+    showToast("Error: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Submit Transaction";
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Recent panel toggle
+// ══════════════════════════════════════════════════════════════════════════════
+
+function openRecent() {
+  recentOpen = true;
+  document.getElementById("recent-body").classList.add("open");
+  document.getElementById("recent-header").classList.add("open");
+  document.getElementById("toggle-icon").classList.add("open");
+}
+
+document.getElementById("recent-header").addEventListener("click", () => {
+  recentOpen = !recentOpen;
+  const body   = document.getElementById("recent-body");
+  const header = document.getElementById("recent-header");
+  const icon   = document.getElementById("toggle-icon");
+  body.classList.toggle("open", recentOpen);
+  header.classList.toggle("open", recentOpen);
+  icon.classList.toggle("open", recentOpen);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Boot
+// ══════════════════════════════════════════════════════════════════════════════
+
+(async () => {
+  initForm();
+
+  // On mobile, collapse recent by default
+  if (window.innerWidth <= 780) {
+    recentOpen = false;
+  }
+
+  try {
+    allTx = await loadActuals();
+    renderBudgetTable();
+    renderRecentPanel();
+  } catch (err) {
+    document.getElementById("budget-tbody").innerHTML =
+      `<tr><td colspan="5" class="empty-state">⚠ Could not load data. Check your Supabase URL and anon key in index.html.</td></tr>`;
+    document.getElementById("budget-cards").innerHTML =
+      `<div class="empty-state">⚠ Could not load data. Check your Supabase credentials.</div>`;
+    showToast("Could not connect to Supabase.", "error");
+  }
+})();
+</script>
+</body>
+</html>
